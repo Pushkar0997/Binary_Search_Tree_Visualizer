@@ -2,7 +2,7 @@
 🌳 Interactive Binary Search Tree (BST) Visualizer
 A single-file, fully interactive web application built with vanilla HTML, CSS, and JavaScript to visualize the core operations of a Binary Search Tree. This educational tool provides clear, step-by-step animations for insertion, deletion, searching, and various tree traversal algorithms.
 
-➡️ Live Demo Link (Deploy on GitHub Pages!)
+➡️ Live Demo Link [(Deploy on GitHub Pages!)]([url](https://pushkar0997.github.io/Binary_Search_Tree_Visualizer/code.html))
 
 ✨ Features
 Node Operations:
