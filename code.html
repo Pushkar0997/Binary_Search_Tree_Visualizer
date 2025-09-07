@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Binary Search Tree Visualizer</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            overscroll-behavior: none;
+        }
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #1a202c; /* dark gray */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #4a5568; /* medium gray */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #718096; /* light gray */
+        }
+        /* Style for the range input slider */
+        input[type="range"] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #4a5568;
+            border-radius: 5px;
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+        }
+        input[type="range"]:hover {
+            opacity: 1;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #6366f1; /* Indigo */
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        input[type="range"]::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #6366f1;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-white flex flex-col min-h-screen items-center justify-center p-4 selection:bg-indigo-500 selection:text-white">
+
+    <div class="w-full max-w-7xl mx-auto flex flex-col items-center bg-gray-800 rounded-2xl shadow-2xl overflow-hidden border border-gray-700" style="height: 95vh;">
+        <!-- Header & Controls -->
+        <header class="w-full p-4 bg-gray-800 border-b border-gray-700">
+            <h1 class="text-2xl font-bold text-center text-indigo-400 mb-4">Binary Search Tree Visualizer</h1>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+                <!-- Operations -->
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="number" id="node-value" class="bg-gray-700 border border-gray-600 rounded-lg px-3 py-2 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 w-full" placeholder="Enter a number...">
+                    <div class="flex gap-2">
+                        <button id="insert-btn" class="flex-1 bg-green-600 hover:bg-green-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 w-full sm:w-auto">Insert</button>
+                        <button id="delete-btn" class="flex-1 bg-red-600 hover:bg-red-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 w-full sm:w-auto">Delete</button>
+                        <button id="search-btn" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 w-full sm:w-auto">Search</button>
+                    </div>
+                </div>
+                <!-- Traversals -->
+                <div class="flex flex-wrap gap-2 justify-center">
+                    <button id="inorder-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex-grow">In-order</button>
+                    <button id="preorder-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex-grow">Pre-order</button>
+                    <button id="postorder-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex-grow">Post-order</button>
+                    <button id="levelorder-btn" class="bg-purple-600 hover:bg-purple-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200 flex-grow">Level-order</button>
+                </div>
+                <!-- Controls -->
+                <div class="flex flex-col gap-2 items-center">
+                    <label for="speed-slider" class="text-sm font-medium">Animation Speed</label>
+                    <input type="range" id="speed-slider" min="100" max="1000" value="500" class="w-full">
+                </div>
+                <!-- Reset -->
+                <div>
+                     <button id="reset-btn" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-semibold py-2 px-4 rounded-lg transition duration-200">Reset Tree</button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Canvas Area -->
+        <main class="w-full flex-1 relative bg-gray-900">
+            <canvas id="bst-canvas" class="absolute top-0 left-0 w-full h-full"></canvas>
+        </main>
+
+        <!-- Status Bar -->
+        <footer class="w-full p-3 bg-gray-800 border-t border-gray-700">
+            <p id="status-bar" class="text-center text-gray-300 font-mono text-sm sm:text-base h-6 flex items-center justify-center"></p>
+        </footer>
+    </div>
+
+    <script>
+        // --- CORE DATA STRUCTURES ---
+
+        /**
+         * Represents a single node in the BST.
+         */
+        class Node {
+            constructor(value) {
+                this.value = value;
+                this.left = null;
+                this.right = null;
+                // Properties for visualization
+                this.x = 0;
+                this.y = 0;
+                this.color = '#6366f1'; // Default: Indigo
+            }
+        }
+
+        /**
+         * Represents the Binary Search Tree and its logical operations.
+         */
+        class BinarySearchTree {
+            constructor() {
+                this.root = null;
+            }
+
+            // Insert a new value into the BST
+            insert(value) {
+                const newNode = new Node(value);
+                if (this.root === null) {
+                    this.root = newNode;
+                    return this.root;
+                }
+                return this._insertNode(this.root, newNode);
+            }
+
+            _insertNode(node, newNode) {
+                if (newNode.value < node.value) {
+                    if (node.left === null) {
+                        node.left = newNode;
+                        return newNode;
+                    }
+                    return this._insertNode(node.left, newNode);
+                } else if (newNode.value > node.value) {
+                    if (node.right === null) {
+                        node.right = newNode;
+                        return newNode;
+                    }
+                    return this._insertNode(node.right, newNode);
+                }
+                // Duplicate values are not inserted
+                return null;
+            }
+            
+            // Delete a value from the BST
+            delete(value) {
+                this.root = this._deleteNode(this.root, value);
+            }
+
+            _deleteNode(node, value) {
+                if (node === null) {
+                    return null;
+                }
+
+                if (value < node.value) {
+                    node.left = this._deleteNode(node.left, value);
+                    return node;
+                } else if (value > node.value) {
+                    node.right = this._deleteNode(node.right, value);
+                    return node;
+                } else {
+                    // Case 1: No child or one child
+                    if (node.left === null) {
+                        return node.right;
+                    }
+                    if (node.right === null) {
+                        return node.left;
+                    }
+
+                    // Case 2: Two children
+                    const successor = this._findMinNode(node.right);
+                    node.value = successor.value;
+                    node.right = this._deleteNode(node.right, successor.value);
+                    return node;
+                }
+            }
+
+            _findMinNode(node) {
+                while (node.left !== null) {
+                    node = node.left;
+                }
+                return node;
+            }
+
+            // Search for a value in the BST
+            search(value) {
+                return this._searchNode(this.root, value);
+            }
+
+            _searchNode(node, value) {
+                if (node === null) {
+                    return null;
+                }
+                if (value < node.value) {
+                    return this._searchNode(node.left, value);
+                } else if (value > node.value) {
+                    return this._searchNode(node.right, value);
+                } else {
+                    return node;
+                }
+            }
+        }
+
+        // --- VISUALIZER LOGIC ---
+
+        const canvas = document.getElementById('bst-canvas');
+        const ctx = canvas.getContext('2d');
+        const nodeValueInput = document.getElementById('node-value');
+        const insertBtn = document.getElementById('insert-btn');
+        const deleteBtn = document.getElementById('delete-btn');
+        const searchBtn = document.getElementById('search-btn');
+        const inorderBtn = document.getElementById('inorder-btn');
+        const preorderBtn = document.getElementById('preorder-btn');
+        const postorderBtn = document.getElementById('postorder-btn');
+        const levelorderBtn = document.getElementById('levelorder-btn');
+        const resetBtn = document.getElementById('reset-btn');
+        const speedSlider = document.getElementById('speed-slider');
+        const statusBar = document.getElementById('status-bar');
+
+        let bst = new BinarySearchTree();
+        let isAnimating = false;
+        const NODE_RADIUS = 20;
+        const LEVEL_HEIGHT = 80;
+
+        // Colors
+        const COLOR_DEFAULT = '#6366f1'; // Indigo
+        const COLOR_PROBE = '#f59e0b'; // Amber
+        const COLOR_SUCCESS = '#10b981'; // Emerald
+        const COLOR_ERROR = '#ef4444'; // Red
+        const COLOR_VISITED = '#8b5cf6'; // Violet
+
+        // Adjust canvas size on window resize
+        function resizeCanvas() {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+            updateAndDrawTree();
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+
+        function getAnimationSpeed() {
+            return 1100 - speedSlider.value;
+        }
+
+        // Utility to sleep for a duration
+        function sleep() {
+            return new Promise(resolve => setTimeout(resolve, getAnimationSpeed()));
+        }
+
+        // Update status message
+        function updateStatus(message, color = 'text-gray-300') {
+            statusBar.textContent = message;
+            statusBar.className = `text-center font-mono text-sm sm:text-base h-6 flex items-center justify-center transition-all ${color}`;
+        }
+        
+        // Disable/Enable all controls
+        function toggleControls(disabled) {
+            isAnimating = disabled;
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(btn => btn.disabled = disabled);
+            nodeValueInput.disabled = disabled;
+            speedSlider.disabled = disabled;
+        }
+
+        // Calculate node positions for drawing
+        function updateNodePositions(node, depth, xOffset, xSpacing) {
+            if (!node) return;
+            node.y = (depth + 1) * LEVEL_HEIGHT;
+
+            let leftSubtreeWidth = getSubtreeWidth(node.left);
+            let rightSubtreeWidth = getSubtreeWidth(node.right);
+            
+            node.x = xOffset + leftSubtreeWidth * xSpacing;
+            
+            updateNodePositions(node.left, depth + 1, xOffset, xSpacing);
+            updateNodePositions(node.right, depth + 1, node.x + xSpacing, xSpacing);
+        }
+
+        function getSubtreeWidth(node) {
+            if (!node) return 0;
+            return getSubtreeWidth(node.left) + getSubtreeWidth(node.right) + 1;
+        }
+
+        // Draw a single node
+        function drawNode(node, color = null) {
+            ctx.beginPath();
+            ctx.arc(node.x, node.y, NODE_RADIUS, 0, 2 * Math.PI);
+            ctx.fillStyle = color || node.color;
+            ctx.fill();
+            ctx.strokeStyle = '#a7a7a7';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
+
+            ctx.fillStyle = 'white';
+            ctx.font = '16px Inter';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(node.value, node.x, node.y);
+        }
+
+        // Draw an edge between two nodes
+        function drawEdge(parent, child) {
+            ctx.beginPath();
+            ctx.moveTo(parent.x, parent.y + NODE_RADIUS);
+            ctx.lineTo(child.x, child.y - NODE_RADIUS);
+            ctx.strokeStyle = '#4a5568'; // Medium gray
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            ctx.closePath();
+        }
+
+        // Recursively draw the entire tree
+        function drawTree(node) {
+            if (!node) return;
+            if (node.left) {
+                drawEdge(node, node.left);
+                drawTree(node.left);
+            }
+            if (node.right) {
+                drawEdge(node, node.right);
+                drawTree(node.right);
+            }
+            drawNode(node);
+        }
+
+        // Main function to clear canvas, update positions, and redraw
+        function updateAndDrawTree() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!bst.root) return;
+
+            const totalWidth = getSubtreeWidth(bst.root);
+            const xSpacing = (NODE_RADIUS * 2) + 20;
+            const treePixelWidth = totalWidth * xSpacing;
+            const startX = (canvas.width - treePixelWidth) / 2 + xSpacing/2;
+
+            updateNodePositions(bst.root, 0, startX, xSpacing);
+            drawTree(bst.root);
+        }
+
+        // --- ANIMATION FUNCTIONS ---
+
+        async function animateProbe(path, finalAction, highlightColor) {
+            for (let i = 0; i < path.length; i++) {
+                const node = path[i];
+                updateAndDrawTree();
+                drawNode(node, highlightColor);
+                await sleep();
+            }
+            await finalAction();
+            updateAndDrawTree();
+        }
+        
+        async function handleInsert() {
+            const value = parseInt(nodeValueInput.value);
+            if (isNaN(value)) {
+                updateStatus('Please enter a valid number.', 'text-red-400');
+                return;
+            }
+
+            toggleControls(true);
+            updateStatus(`Inserting ${value}...`);
+
+            const path = [];
+            let current = bst.root;
+            
+            while (current) {
+                path.push(current);
+                if (value < current.value) {
+                    current = current.left;
+                } else if (value > current.value) {
+                    current = current.right;
+                } else {
+                    // Duplicate found
+                    await animateProbe(path, () => {}, COLOR_PROBE);
+                    updateAndDrawTree();
+                    drawNode(path[path.length - 1], COLOR_ERROR);
+                    updateStatus(`Node ${value} already exists.`, 'text-yellow-400');
+                    toggleControls(false);
+                    nodeValueInput.value = '';
+                    return;
+                }
+            }
+            
+            await animateProbe(path, () => {}, COLOR_PROBE);
+            
+            const newNode = bst.insert(value);
+            updateAndDrawTree();
+            drawNode(newNode, COLOR_SUCCESS);
+            updateStatus(`Inserted node ${value}.`, 'text-green-400');
+
+            await sleep();
+            updateAndDrawTree();
+            toggleControls(false);
+            nodeValueInput.value = '';
+        }
+        
+        async function handleSearch() {
+            const value = parseInt(nodeValueInput.value);
+            if (isNaN(value)) {
+                updateStatus('Please enter a valid number.', 'text-red-400');
+                return;
+            }
+            if (!bst.root) {
+                updateStatus('Tree is empty.', 'text-yellow-400');
+                return;
+            }
+
+            toggleControls(true);
+            updateStatus(`Searching for ${value}...`);
+
+            const path = [];
+            let current = bst.root;
+            let foundNode = null;
+
+            while (current) {
+                path.push(current);
+                if (value < current.value) {
+                    current = current.left;
+                } else if (value > current.value) {
+                    current = current.right;
+                } else {
+                    foundNode = current;
+                    break;
+                }
+            }
+
+            await animateProbe(path, () => {}, COLOR_PROBE);
+
+            if (foundNode) {
+                drawNode(foundNode, COLOR_SUCCESS);
+                updateStatus(`Found node ${value}.`, 'text-green-400');
+            } else {
+                updateStatus(`Node ${value} not found.`, 'text-red-400');
+            }
+            
+            await sleep();
+            updateAndDrawTree(); // Reset colors
+            toggleControls(false);
+            nodeValueInput.value = '';
+        }
+
+        async function handleDelete() {
+            const value = parseInt(nodeValueInput.value);
+            if (isNaN(value)) {
+                updateStatus('Please enter a valid number.', 'text-red-400');
+                return;
+            }
+            if (!bst.root) {
+                updateStatus('Tree is empty.', 'text-yellow-400');
+                return;
+            }
+            
+            toggleControls(true);
+            updateStatus(`Attempting to delete ${value}...`);
+
+            // 1. Find the node to delete and its path
+            let path = [];
+            let current = bst.root;
+            let targetNode = null;
+
+            while (current) {
+                path.push(current);
+                if (value < current.value) {
+                    current = current.left;
+                } else if (value > current.value) {
+                    current = current.right;
+                } else {
+                    targetNode = current;
+                    break;
+                }
+            }
+            
+            await animateProbe(path, () => {}, COLOR_PROBE);
+            
+            if (!targetNode) {
+                updateStatus(`Node ${value} not found.`, 'text-red-400');
+                toggleControls(false);
+                return;
+            }
+            
+            updateAndDrawTree();
+            drawNode(targetNode, COLOR_ERROR);
+            await sleep();
+            
+            // 2. Handle deletion cases
+            if (targetNode.left && targetNode.right) {
+                // Case 3: Two children - find in-order successor
+                updateStatus(`Node has two children. Finding successor...`);
+                let successorPath = [];
+                let successor = targetNode.right;
+                while (successor) {
+                    successorPath.push(successor);
+                    successor = successor.left;
+                }
+                successor = successorPath.pop(); // The last valid node is the successor
+                if(successorPath.length === 0) successorPath.push(targetNode.right); // handle case where right child is successor
+                
+                // Animate finding successor
+                for(const node of successorPath){
+                    drawNode(node, COLOR_PROBE);
+                    await sleep();
+                }
+                updateAndDrawTree();
+                drawNode(targetNode, COLOR_ERROR);
+                drawNode(successor, COLOR_VISITED);
+                updateStatus(`Successor is ${successor.value}. Swapping values...`);
+                await sleep();
+
+                // Swap values and then delete the successor
+                targetNode.value = successor.value;
+                bst.root = bst._deleteNode(bst.root, successor.value); // Logical deletion of successor
+            } else {
+                 bst.delete(value); // Logical deletion for 0 or 1 child
+            }
+
+            updateStatus(`Deleted node ${value}.`, 'text-green-400');
+            updateAndDrawTree();
+            await sleep();
+            updateAndDrawTree();
+            
+            toggleControls(false);
+            nodeValueInput.value = '';
+        }
+
+        async function handleTraversal(type) {
+            if (!bst.root) {
+                updateStatus('Tree is empty.', 'text-yellow-400');
+                return;
+            }
+            toggleControls(true);
+            updateStatus(`${type} Traversal: `);
+            let result = [];
+            
+            const traversalGenerator = {
+                'In-order': function* inOrder(node) {
+                    if (node) {
+                        yield* inOrder(node.left);
+                        yield node;
+                        yield* inOrder(node.right);
+                    }
+                },
+                'Pre-order': function* preOrder(node) {
+                    if (node) {
+                        yield node;
+                        yield* preOrder(node.left);
+                        yield* preOrder(node.right);
+                    }
+                },
+                'Post-order': function* postOrder(node) {
+                    if (node) {
+                        yield* postOrder(node.left);
+                        yield* postOrder(node.right);
+                        yield node;
+                    }
+                },
+                'Level-order': function* levelOrder(root) {
+                    if (!root) return;
+                    const queue = [root];
+                    while (queue.length > 0) {
+                        const node = queue.shift();
+                        yield node;
+                        if (node.left) queue.push(node.left);
+                        if (node.right) queue.push(node.right);
+                    }
+                }
+            };
+            
+            const generator = traversalGenerator[type](bst.root);
+
+            for (const node of generator) {
+                result.push(node.value);
+                updateStatus(`${type} Traversal: ${result.join(' → ')}`);
+                updateAndDrawTree();
+                drawNode(node, COLOR_VISITED);
+                await sleep();
+            }
+
+            updateAndDrawTree();
+            updateStatus(`${type} Traversal Complete: ${result.join(' → ')}`, 'text-green-400');
+            toggleControls(false);
+        }
+
+        function handleReset() {
+            bst = new BinarySearchTree();
+            updateStatus('Tree has been reset.');
+            updateAndDrawTree();
+        }
+
+        // --- EVENT LISTENERS ---
+        insertBtn.addEventListener('click', handleInsert);
+        deleteBtn.addEventListener('click', handleDelete);
+        searchBtn.addEventListener('click', handleSearch);
+        inorderBtn.addEventListener('click', () => handleTraversal('In-order'));
+        preorderBtn.addEventListener('click', () => handleTraversal('Pre-order'));
+        postorderBtn.addEventListener('click', () => handleTraversal('Post-order'));
+        levelorderBtn.addEventListener('click', () => handleTraversal('Level-order'));
+        resetBtn.addEventListener('click', handleReset);
+        nodeValueInput.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                handleInsert();
+            }
+        });
+
+        // Initial setup
+        resizeCanvas();
+        updateStatus('Enter a number and click "Insert" to start.');
+    </script>
+</body>
+</html>
+
