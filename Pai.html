@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NASM Assembly Code Examples</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+            color: #333;
+        }
+        .container {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 25px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            border-bottom: 2px solid #e0e0e0;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #34495e;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+            margin-top: 40px;
+        }
+        pre {
+            background-color: #2d2d2d;
+            color: #f1f1f1;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        code {
+            font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, Courier, monospace;
+            font-size: 0.9em;
+        }
+        p.note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffeeba;
+            padding: 10px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>NASM 8086 Assembly Problem Solutions</h1>
+        <p>A collection of solutions based on the provided university coursework examples.</p>
+
+        <h2>1. Display "Hello World" on the console.</h2>
+        <pre><code>
+global _start
+
+section .data
+hello db "Hello, World!", 10
+length equ $-hello
+
+section .text
+
+_start:
+    mov eax, 4      ; System call for sys_write
+    mov ebx, 1      ; File descriptor 1 (stdout)
+    mov ecx, hello  ; Pointer to the message
+    mov edx, length ; Length of the message
+    int 80h         ; Call the kernel
+
+    mov eax, 1      ; System call for sys_exit
+    xor ebx, ebx    ; Exit code 0
+    int 80h
+        </code></pre>
+
+        <h2>2. Display "Hello World" and trace execution using GDB.</h2>
+        <p class="note">This problem involves using GDB commands on the code from Problem 1. First, compile with debugging symbols.</p>
+        <pre><code>
+# Compile for GDB
+nasm -f elf32 -g hello.asm
+ld -m elf_i386 hello.o -o hello
+
+# GDB Tracing Steps
+gdb ./hello
+(gdb) break _start
+(gdb) run
+(gdb) layout regs
+(gdb) nexti
+        </code></pre>
+
+        <h2>3. Accept a single character input and display it back.</h2>
+        <pre><code>
+global _start
+
+section .bss
+    char resb 1     ; Reserve 1 byte for the character
+
+section .text
+_start:
+    ; Read a single character
+    mov eax, 3      ; System call for sys_read
+    mov ebx, 0      ; File descriptor 0 (stdin)
+    mov ecx, char   ; Buffer to store character
+    mov edx, 1      ; Read 1 byte
+    int 0x80
+
+    ; Display the character
+    mov eax, 4      ; System call for sys_write
+    mov ebx, 1      ; File descriptor 1 (stdout)
+    mov ecc, char   ; Pointer to the character
+    mov edx, 1      ; Write 1 byte
+    int 0x80
+
+    ; Exit
+    mov eax, 1
+    int 0x80
+        </code></pre>
+
+        <h2>4. Accept a string input (e.g., your name) and display it.</h2>
+        <pre><code>
+global _start
+
+section .bss
+    name resb 16    ; Reserve 16 bytes for the name
+
+section .text
+_start:
+    ; Read the name from the user
+    mov eax, 3      ; sys_read
+    mov ebx, 0      ; stdin
+    mov ecx, name   ; Buffer to store the name
+    mov edx, 16     ; Max number of bytes to read
+    int 0x80
+
+    ; Display the name
+    mov eax, 4      ; sys_write
+    mov ebx, 1      ; stdout
+    mov ecx, name   ; Pointer to the name
+    ; EDX will contain the number of bytes read
+    int 0x80
+
+    ; Exit
+    mov eax, 1
+    int 0x80
+        </code></pre>
+
+        <h2>5. Add two 8-bit numbers and display the result.</h2>
+        <pre><code>
+global _start
+
+section .data
+    result db 0, 0
+    newline db 10
+
+section .text
+_start:
+    mov al, 8       ; First number
+    mov bl, 5       ; Second number
+    add al, bl      ; AL = 13
+
+    aam             ; Unpack to AH=1, AL=3
+    add ah, '0'     ; Convert to ASCII '1'
+    add al, '0'     ; Convert to ASCII '3'
+
+    mov [result], ah
+    mov [result+1], al
+
+    ; Display the result
+    mov eax, 4
+    mov ebx, 1
+    mov ecx, result
+    mov edx, 2
+    int 80h
+
+    ; Exit
+    mov eax, 1
+    int 80h
+        </code></pre>
+
+        <h2>6. Add two 8-bit numbers and verify result using GDB.</h2>
+        <pre><code>
+section .data
+    result db 0
+section .text
+    global _start
+_start:
+    mov eax, 0x2A   ; First number (42)
+    mov ebx, 0x3B   ; Second number (59)
+    add al, bl      ; AL = AL + BL (42 + 59 = 101 = 0x65)
+    mov [result], al
+
+    mov eax, 1
+    xor ebx, ebx
+    int 0x80
+        </code></pre>
+
+        <h2>7. Accept two 8-bit numbers, perform addition, and trace.</h2>
+        <pre><code>
+global _start
+
+section .data
+    msg1 db "Enter the 1st Value: ",10
+    len1 equ $-msg1
+    msg2 db "Enter the 2nd Value: ",10
+    len2 equ $-msg2
+    msg3 db "The addition is: "
+    len3 equ $-msg3
+
+section .bss
+    val1 resb 2
+    val2 resb 2
+    result resb 2
+
+section .text
+_start:
+    ; Code to print msg1 and read val1
+    mov eax,4
+    mov ebx,1
+    mov ecx,msg1
+    mov edx,len1
+    int 0x80
+    mov eax,3
+    mov ebx,0
+    mov ecx,val1
+    mov edx,2
+    int 0x80
+
+    ; Code to print msg2 and read val2
+    mov eax,4
+    mov ebx,1
+    mov ecx,msg2
+    mov edx,len2
+    int 0x80
+    mov eax,3
+    mov ebx,0
+    mov ecx,val2
+    mov edx,2
+    int 0x80
+
+    ; Convert from ASCII and add
+    mov al,[val1]
+    sub al,'0'
+    mov bl,[val2]
+    sub bl,'0'
+    add al,bl
+    add al,'0'      ; Convert back to ASCII
+    mov [result],al
+
+    ; Code to print msg3 and the result
+    mov eax,4
+    mov ebx,1
+    mov ecx,msg3
+    mov edx,len3
+    int 0x80
+    mov eax,4
+    mov ebx,1
+    mov ecx,result
+    mov edx,1
+    int 0x80
+
+    ; Exit
+    mov eax,1
+    int 0x80
+        </code></pre>
+
+        <h2>8. Subtract two 8-bit numbers and display the result.</h2>
+        <pre><code>
+global _start
+
+section .data
+    msg1 db "Enter the 1st Value: ",10
+    len1 equ $-msg1
+    msg2 db "Enter the 2nd Value: ",10
+    len2 equ $-msg2
+    msg3 db "The subtraction is: "
+    len3 equ $-msg3
+
+section .bss
+    val1 resb 2
+    val2 resb 2
+    result resb 2
+
+section .text
+_start:
+    ; (I/O Code is the same as addition)
+    ; ...
+
+    ; Convert ascii -> number
+    mov al,[val1]
+    sub al,'0'
+    mov bl,[val2]
+    sub bl,'0'
+
+    ; Subtraction: val1 - val2
+    sub al,bl
+
+    ; Convert number -> ascii
+    add al,'0'
+    mov [result],al
+
+    ; (Printing code is the same)
+    ; ...
+        </code></pre>
+
+        <h2>9. Subtract two 8-bit numbers and verify using GDB.</h2>
+        <pre><code>
+section .data
+    result db 0
+section .text
+    global _start
+_start:
+    mov eax, 0x5c   ; First number (92)
+    mov ebx, 0x3a   ; Second number (58)
+    sub al, bl      ; AL = AL - BL (92 - 58 = 34 = 0x22)
+    mov [result], al
+
+    mov eax, 1
+    xor ebx, ebx
+    int 0x80
+        </code></pre>
+
+        <h2>10. Multiply two 8-bit numbers and display the result.</h2>
+        <pre><code>
+global _start
+; (I/O and message definitions are the same as useradd.asm)
+; ...
+
+section .text
+_start:
+    ; (I/O Code to get two values is the same)
+    ; ...
+
+    ; Convert ascii -> number
+    mov al,[val1]
+    sub al,'0'
+    mov bl,[val2]
+    sub bl,'0'
+
+    ; Multiply
+    mul bl          ; Result in AX
+
+    ; Adjust result using AAM (AH = tens, AL = ones)
+    aam
+
+    ; Convert to ascii
+    add ah,'0'
+    add al,'0'
+
+    ; (Code to print the two-digit result)
+    ; ...
+        </code></pre>
+
+        <h2>11. Divide two 8-bit numbers, showing quotient and remainder.</h2>
+        <pre><code>
+section .data
+    q_msg db "Quotient: "
+    q_len equ $-q_msg
+    r_msg db ", Remainder: "
+    r_len equ $-r_msg
+    newline db 10
+
+section .bss
+    quotient resb 2
+    remainder resb 2
+
+section .text
+    global _start
+_start:
+    mov al, 90  ; Dividend (0x5A)
+    mov ah, 0
+    mov bl, 6   ; Divisor (0x06)
+    div bl      ; AL = Quotient (15), AH = Remainder (0)
+
+    ; Convert quotient to ASCII (using AAM logic)
+    mov cl, al  ; Save quotient
+    aam         ; Unpack quotient
+    add ah, '0'
+    add al, '0'
+    mov [quotient], ah
+    mov [quotient+1], al
+
+    ; Convert remainder to ASCII
+    mov al, ah  ; Move original remainder to AL from div
+    mov ah, 0   ; Clear ah before next aam
+    aam         ; Unpack remainder
+    add ah, '0'
+    add al, '0'
+    mov [remainder], ah
+    mov [remainder+1], al
+
+    ; (Code to print q_msg, quotient, r_msg, remainder, and newline)
+    ; ... uses sys_write calls ...
+
+    mov eax, 1
+    int 0x80
+        </code></pre>
+
+        <h2>12. Accept two 8-bit numbers, subtract, check result in GDB.</h2>
+        <p class="note">This involves using the code from Problem 8 and applying the GDB tracing steps from Problem 2. You would step through the `sub` instruction and check the registers.</p>
+
+        <h2>13. Accept two 8-bit numbers, multiply, trace result in GDB.</h2>
+        <p class="note">This involves using the interactive multiplication code from Problem 10 and tracing it with GDB. After the `mul bl` instruction, check the `AX` register for the result.</p>
+
+        <h2>14. Accept two 8-bit numbers, divide, trace in GDB.</h2>
+        <p class="note">This involves using an interactive division program and tracing it with GDB. After the `div bl` instruction, check `al` for the quotient and `ah` for the remainder.</p>
+        
+        <h2>15. Add three 8-bit numbers in an array and display.</h2>
+        <pre><code>
+section .text
+    global _start
+_start:
+    mov eax, x      ; Pointer to array
+    mov ebx, 0      ; Clear EBX (BL is sum)
+    mov ecx, 3      ; Loop counter is 3
+
+top:
+    add bl, [eax]   ; Add number to sum
+    inc eax         ; Move to next number
+    loop top
+
+done:
+    ; (Code to convert sum in BL to ASCII and display)
+    ; ... same aam logic as other programs ...
+    
+    mov eax, 1
+    int 80h
+
+section .data
+x:
+    db 10           ; First number
+    db 20           ; Second number
+    db 5            ; Third number
+sum db 0, 0
+        </code></pre>
+        
+        <h2>16. Accept three 8-bit numbers, store in array, add, display.</h2>
+        <pre><code>
+section .bss
+    val resb 2
+    array resb 3    ; Array to store 3 numbers
+    result resb 4
+
+section .text
+_start:
+    ; --- Part 1: Read 3 numbers ---
+    ; (Repeat sys_read logic 3 times)
+    ; 1st number
+    mov eax, 3
+    mov ebx, 0
+    mov ecx, val
+    mov edx, 2
+    int 0x80
+    mov al, [val]
+    sub al, '0'
+    mov [array], al ; Store in array
+
+    ; 2nd number (read and store in [array+1])
+    ; ...
+    ; 3rd number (read and store in [array+2])
+    ; ...
+
+    ; --- Part 2: Add numbers from array ---
+    mov eax, array
+    mov ebx, 0
+    mov ecx, 3
+top:
+    add bl, [eax]
+    inc eax
+    loop top
+
+    ; --- Part 3: Display result ---
+    ; (Convert sum in BL to ASCII and print)
+    ; ...
+
+    mov eax, 1
+    int 80h
+        </code></pre>
+        
+        <h2>17. Find the largest of two 8-bit numbers entered.</h2>
+        <pre><code>
+section .bss
+    val1 resb 2
+    val2 resb 2
+    largest resb 2
+
+section .text
+_start:
+    ; (Code to read val1 and val2 from user)
+    ; ...
+
+    ; Convert to numbers
+    mov al, [val1]
+    sub al, '0'
+    mov bl, [val2]
+    sub bl, '0'
+
+    ; Compare them
+    cmp al, bl
+    jge al_is_larger  ; Jump if AL >= BL
+
+bl_is_larger:
+    add bl, '0'
+    mov [largest], bl ; BL is larger, store it
+    jmp display
+
+al_is_larger:
+    add al, '0'
+    mov [largest], al ; AL is larger, store it
+
+display:
+    ; (Code to print the 'largest' value)
+    ; ...
+    
+    mov eax, 1
+    int 80h
+        </code></pre>
+        
+        <h2>18. Find the smallest of two 8-bit numbers.</h2>
+        <p class="note">The logic is the same as Problem 17, but the conditional jump is changed from `jge` (Jump if Greater or Equal) to `jle` (Jump if Less or Equal).</p>
+        <pre><code>
+    ; ...
+    ; Compare them
+    cmp al, bl
+    jle al_is_smaller ; Jump if AL &lt;= BL
+    ; ...
+        </code></pre>
+        
+        <h2>19. Compare two strings entered by the user (case-sensitive).</h2>
+        <p class="note">A solution for this problem is not available from the provided repository files. This task requires more advanced string manipulation and looping logic (like the `repe cmpsb` instruction) that was not part of the examples.</p>
+        
+        <h2>20. Reverse a string entered by the user.</h2>
+        <p class="note">A solution for this problem is not available from the provided repository files. Reversing a string requires looping and memory access patterns that were not demonstrated in the examples provided.</p>
+    </div>
+</body>
+</html>
